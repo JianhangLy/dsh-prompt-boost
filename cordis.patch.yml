@@ -1,0 +1,17 @@
+# ============================================================================
+# dsh-prompt-boost —— DSH bundle patch
+# ============================================================================
+# 本插件同时有两半：
+#   - 宿主半（lib/index.js）：注册回环路由 POST /prompt-boost/enhance，调用 harness LLM；
+#   - 浏览器半（client/client.js）：在输入框工具行加 ✦ 按钮与预览卡。
+# 因此这里只需要一行 insert。
+#
+# 安装（本地开发，不发布）：
+#   plugin_manager install_bundle  target = link:D:/DeepSeek/dsh-prompt-boost
+# 等价 CLI：
+#   dsh plugin --profile desktop add link:D:/DeepSeek/dsh-prompt-boost
+# ============================================================================
+
+- insert:
+    - id: prompt-boost
+      name: dsh-prompt-boost

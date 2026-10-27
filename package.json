@@ -1,0 +1,41 @@
+{
+  "name": "dsh-prompt-boost",
+  "version": "0.2.0",
+  "description": "DSH Web GUI 的「增强提示词」插件：把输入框草稿交给当前会话模型重写成结构化提示词，流式预览、一键回填、可撤销，并带独立设置页。",
+  "private": true,
+  "author": "JianhangLy",
+  "homepage": "https://github.com/JianhangLy/dsh-prompt-boost#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JianhangLy/dsh-prompt-boost.git"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./client/client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "client",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web"
+    }
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "prompt",
+    "webui"
+  ],
+  "license": "MIT"
+}
