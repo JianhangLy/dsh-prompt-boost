@@ -23,6 +23,7 @@ window.__ModuleLoader__.load({
     const SETTINGS_SECTION_ID = 'prompt-boost'
     const SETTINGS_SECTION_ORDER = 115
     const STYLE_STORAGE_KEY = 'dsh-prompt-boost.style'
+    const SYSTEM_CLEARED_KEY = 'dsh-prompt-boost.systemPromptCleared'
 
     const zh = {
       title: '增强结果',
@@ -39,6 +40,7 @@ window.__ModuleLoader__.load({
       emptyHint: '先输入一段草稿',
       busy: '正在增强…',
       generating: '生成中…',
+      thinkingTime: '思考计时',
       errorCommand: '命令输入不支持增强',
       errorGeneric: '增强失败',
       settingsNav: '提示词增强',
@@ -62,7 +64,7 @@ window.__ModuleLoader__.load({
       settingStreaming: '流式输出',
       settingStreamingHint: '关闭后等生成完再一次性显示。',
       settingSystem: '系统提示词',
-      settingSystemHint: '留空时显示当前风格的默认提示词；手动编辑后进入自定义模式，风格选择不生效。',
+      settingSystemHint: '留空时显示当前默认风格的提示词；手动清空后保持为空，点「恢复默认」可重新显示。编辑后进入自定义模式，风格选择不生效。',
       settingDefaultStyle: '默认风格',
       settingDefaultStyleHint: '生成前没有手动选择时使用这个风格。',
       settingCustomModeHint: '已填写自定义系统提示词：风格选择不生效。',
@@ -96,6 +98,7 @@ window.__ModuleLoader__.load({
       emptyHint: 'Type a draft first',
       busy: 'Enhancing…',
       generating: 'Generating…',
+      thinkingTime: 'Thinking time',
       errorCommand: 'Commands cannot be enhanced',
       errorGeneric: 'Enhancement failed',
       settingsNav: 'Prompt Boost',
@@ -119,7 +122,7 @@ window.__ModuleLoader__.load({
       settingStreaming: 'Streaming output',
       settingStreamingHint: 'When off, the result appears only after generation completes.',
       settingSystem: 'System prompt',
-      settingSystemHint: 'Leave empty to show the selected style’s default prompt; editing it enters custom mode and disables style selection.',
+      settingSystemHint: 'Leave empty to show the selected style’s default prompt; if you clear it manually it stays empty until you reset to defaults. Editing enters custom mode and disables style selection.',
       settingDefaultStyle: 'Default style',
       settingDefaultStyleHint: 'Used when no style is picked before generating.',
       settingCustomModeHint: 'A custom system prompt is set: style selection is inactive.',
@@ -164,8 +167,12 @@ window.__ModuleLoader__.load({
       '@keyframes pb-pulse{50%{opacity:.35}}',
       '.pb-card{box-sizing:border-box;width:calc(100% - var(--dsh-composer-side-clearance, 16px) - var(--dsh-composer-side-clearance, 16px));max-width:var(--dsh-composer-card-max-width, 952px);margin:0 auto 8px;padding:12px 14px;border:1px solid rgba(127,127,127,.28);border-radius:12px;background:rgba(127,127,127,.05);color:var(--dsw-alias-label-primary);font-size:13px}',
       '.pb-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:8px}',
-      '.pb-title{font-weight:600}',
+      '.pb-title{flex:none;font-weight:600}',
       '.pb-meta{color:var(--dsw-alias-label-tertiary);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+      '.pb-head-right{display:flex;flex-direction:row;flex-wrap:nowrap;align-items:baseline;justify-content:flex-end;gap:8px;min-width:0}',
+      '.pb-head-right .pb-meta{min-width:0}',
+      '.pb-timer{flex:none;color:var(--dsw-alias-label-secondary);font-size:11px;font-variant-numeric:tabular-nums;white-space:nowrap}',
+      '.pb-error-side{display:inline-flex;align-items:center;gap:10px;flex:none}',
       '.pb-cols{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:stretch}',
       '@media (max-width:720px){.pb-cols{grid-template-columns:1fr}}',
       '.pb-col{display:flex;flex-direction:column;min-width:0}',
@@ -214,6 +221,8 @@ window.__ModuleLoader__.load({
           text: '',
           model: '',
           elapsedMs: 0,
+          thinkStartedAt: 0,
+          thinkFinishedAt: 0,
           error: '',
           undo: null,
           copied: false,
@@ -279,6 +288,8 @@ window.__ModuleLoader__.load({
         text: '',
         model: '',
         elapsedMs: 0,
+        thinkStartedAt: Date.now(),
+        thinkFinishedAt: 0,
         error: '',
         copied: false,
         undo: null,
@@ -317,7 +328,7 @@ window.__ModuleLoader__.load({
         } catch (error) {
           if (error && error.name === 'AbortError') {
             stopFlush()
-            patch(sessionId, { phase: 'idle', text: '', abort: null })
+            patch(sessionId, { phase: 'idle', text: '', abort: null, thinkFinishedAt: Date.now() })
             return
           }
           throw error
@@ -375,20 +386,21 @@ window.__ModuleLoader__.load({
             text: finalPayload.text,
             model: modelLabel(finalPayload.provider, finalPayload.model),
             elapsedMs: typeof finalPayload.elapsedMs === 'number' ? finalPayload.elapsedMs : 0,
+            thinkFinishedAt: Date.now(),
             abort: null,
           })
         } else {
-          patch(sessionId, { phase: 'error', error: '模型没有返回内容', abort: null })
+          patch(sessionId, { phase: 'error', error: '模型没有返回内容', abort: null, thinkFinishedAt: Date.now() })
         }
       }
 
       run().catch((error) => {
         stopFlush()
         if (error && error.name === 'AbortError') {
-          patch(sessionId, { phase: 'idle', text: '', abort: null })
+          patch(sessionId, { phase: 'idle', text: '', abort: null, thinkFinishedAt: Date.now() })
           return
         }
-        patch(sessionId, { phase: 'error', error: (error && error.message) || '增强失败', abort: null })
+        patch(sessionId, { phase: 'error', error: (error && error.message) || '增强失败', abort: null, thinkFinishedAt: Date.now() })
       })
     }
 
@@ -415,6 +427,32 @@ window.__ModuleLoader__.load({
       } catch {
         // localStorage 不可用时只影响“记住上次”，不影响本次生成。
       }
+    }
+
+    // “手动清空”是展示层的选择：空 systemPrompt 仍按既有逻辑回填默认风格提示词，
+    // 但用户明确清空后要记住这个动作，否则下一次渲染又会把默认提示词写回输入框。
+    // 该标记只影响设置页展示，不进入 API，也不参与 customMode 判定。
+    function readSystemCleared() {
+      try {
+        return typeof window !== 'undefined' && window.localStorage.getItem(SYSTEM_CLEARED_KEY) === '1'
+      } catch {
+        return false
+      }
+    }
+
+    function storeSystemCleared(cleared) {
+      try {
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem(SYSTEM_CLEARED_KEY, cleared ? '1' : '0')
+        }
+      } catch {
+        // 不可写时仅影响跨刷新记忆，不影响当前页面内的清空行为。
+      }
+    }
+
+    function formatThinking(ms) {
+      const seconds = Math.max(0, Math.round((Number(ms) || 0) / 1000))
+      return seconds + 's'
     }
 
     // 自绘下拉：原生 select 的展开列表无法跟随页面主题，收起态也容易截断。
@@ -560,7 +598,7 @@ window.__ModuleLoader__.load({
         if (disabled) return
         const text = draft
         if (text.trim().startsWith('/')) {
-          patch(sessionId, { phase: 'error', error: t('errorCommand') })
+          patch(sessionId, { phase: 'error', error: t('errorCommand'), thinkStartedAt: 0, thinkFinishedAt: 0 })
           return
         }
         requestEnhance(sessionId, text, styleId)
@@ -610,15 +648,27 @@ window.__ModuleLoader__.load({
       const sessionId = props.sessionId
       const t = translator(props)
       const state = useSession(sessionId)
+      const [now, setNow] = React.useState(() => Date.now())
+      React.useEffect(() => {
+        if (state.phase !== 'loading' || state.thinkStartedAt <= 0) return undefined
+        setNow(Date.now())
+        const timer = setInterval(() => setNow(Date.now()), 250)
+        return () => clearInterval(timer)
+      }, [state.phase, state.thinkStartedAt])
+      const thinking = state.thinkStartedAt > 0
+        ? formatThinking((state.thinkFinishedAt || now) - state.thinkStartedAt)
+        : ''
 
       if (state.phase === 'error') {
         return h('div', { className: 'pb-card pb-error' },
           h('span', { className: 'pb-error-text' }, state.error || t('errorGeneric')),
-          h('button', {
-            type: 'button',
-            className: 'pb-link',
-            onClick: () => patch(sessionId, { phase: 'idle', error: '' }),
-          }, t('close')),
+          h('span', { className: 'pb-error-side' },
+            thinking !== '' ? h('span', { className: 'pb-timer', title: t('thinkingTime') }, thinking) : null,
+            h('button', {
+              type: 'button',
+              className: 'pb-link',
+              onClick: () => patch(sessionId, { phase: 'idle', error: '' }),
+            }, t('close'))),
         )
       }
       if (state.phase !== 'preview' && state.phase !== 'loading') return null
@@ -640,7 +690,7 @@ window.__ModuleLoader__.load({
 
       function cancel() {
         if (loading && state.abort) state.abort.abort()
-        patch(sessionId, { phase: 'idle', text: '', abort: null })
+        patch(sessionId, { phase: 'idle', text: '', abort: null, thinkFinishedAt: state.thinkFinishedAt || Date.now() })
       }
 
       const meta = loading
@@ -660,7 +710,9 @@ window.__ModuleLoader__.load({
       return h('div', { className: 'pb-card' },
         h('div', { className: 'pb-head' },
           h('span', { className: 'pb-title' }, loading ? t('busy') : t('title')),
-          h('span', { className: 'pb-meta' }, meta)),
+          h('span', { className: 'pb-head-right' },
+            h('span', { className: 'pb-meta' }, meta),
+            thinking !== '' ? h('span', { className: 'pb-timer', title: t('thinkingTime') }, thinking) : null)),
         h('div', { className: 'pb-cols' },
           h('div', { className: 'pb-col' },
             h('div', { className: 'pb-col-title' }, t('original')),
@@ -733,6 +785,8 @@ window.__ModuleLoader__.load({
       const [status, setStatus] = React.useState(t('settingLoading'))
       const [failed, setFailed] = React.useState(false)
       const [busy, setBusy] = React.useState(false)
+      // 仅记录“用户手动清空过”，用于抑制默认提示词回填；不进入 API，也不改变 customMode。
+      const [systemCleared, setSystemCleared] = React.useState(readSystemCleared)
 
       React.useEffect(() => {
         let alive = true
@@ -771,10 +825,12 @@ window.__ModuleLoader__.load({
 
       const update = (key, value) => setForm((current) => ({ ...current, [key]: value }))
 
-      const customMode = String(form.systemPrompt || '').trim() !== ''
+      const rawSystemPrompt = typeof form.systemPrompt === 'string' ? form.systemPrompt : ''
+      const customMode = rawSystemPrompt.trim() !== ''
       const selectedStyle = styles.find((style) => style.id === (form.defaultStyleId || 'logic'))
       const stylePrompt = selectedStyle && typeof selectedStyle.system === 'string' ? selectedStyle.system : builtin
-      const shownSystemPrompt = customMode ? form.systemPrompt : stylePrompt
+      // 空值仍显示默认风格提示词；但用户明确清空过之后，不再把提示词写回输入框。
+      const shownSystemPrompt = rawSystemPrompt !== '' || systemCleared ? rawSystemPrompt : stylePrompt
 
       function save() {
         setBusy(true)
@@ -804,6 +860,8 @@ window.__ModuleLoader__.load({
 
       function reset() {
         if (defaults !== null) {
+          setSystemCleared(false)
+          storeSystemCleared(false)
           setForm({ ...form, ...defaults })
           setStatus('')
           setFailed(false)
@@ -904,13 +962,23 @@ window.__ModuleLoader__.load({
           h('textarea', {
             className: 'pb-textarea',
             value: shownSystemPrompt,
-            onChange: (event) => update('systemPrompt', event.target.value),
+            onChange: (event) => {
+              const value = event.target.value
+              const cleared = value === ''
+              setSystemCleared(cleared)
+              storeSystemCleared(cleared)
+              update('systemPrompt', value)
+            },
           }),
           h('div', { className: 'pb-actions-row' },
             h('button', {
               type: 'button',
               className: 'pb-link pb-fill-strategy',
-              onClick: () => update('systemPrompt', builtin),
+              onClick: () => {
+                setSystemCleared(false)
+                storeSystemCleared(false)
+                update('systemPrompt', builtin)
+              },
             }, t('settingFillBuiltin')),
             h('span', { className: 'pb-field-hint' }, t('settingSystemHint')))),
 
