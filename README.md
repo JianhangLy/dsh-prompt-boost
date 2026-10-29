@@ -1,14 +1,26 @@
 # dsh-prompt-boost
 
-DSH Web GUI 的「增强提示词」插件：输入框工具栏加一个 **✦** 按钮，把当前草稿交给模型重写成结构化提示词，流式预览、确认后回填、可撤销，并带一个独立设置页。
+DSH Web GUI 的「增强提示词」插件：输入框工具栏加一个 **✦** 按钮和风格选择器，把当前草稿按所选风格重写成提示词，流式预览、确认后回填、可撤销，并带一个独立设置页。
 
 ## 功能
 
 - **✦ 按钮**：位于输入框工具行、发送键左侧；空草稿或生成中自动禁用。
+- **生成前选风格**：`logic`（仅优化逻辑，默认）/ `structured`（结构化重写）/ `concise`（精简压缩）三选一；选择结果记在本地，下次自动沿用，设置页可另设默认。
+- **自定义提示词二选一**：设置里填写系统提示词后进入自定义模式，风格选择器禁用并提示，风格不再参与生成。
 - **流式预览**：原文 / 增强后两栏对照，生成过程中边收边显示；生成期间可取消。
 - **回填与撤销**：确认后写回输入框（`inputActions.setDraft`），并在输入框上方出现一条撤销提示，一键恢复原文。
 - **设置页**：`设置 → 提示词增强`，保存后立即生效（宿主每次请求都读设置）。
 - **安全边界**：空草稿、`/` 命令在本地拦截；失败只提示，不改动草稿；服务端二次校验长度与模型可用性。
+
+## 更新说明
+
+### 0.3.0（2026-10-29）
+
+- 设置页「系统提示词」联动：`systemPrompt` 为空时显示当前默认风格的提示词；手动编辑后进入自定义模式，风格选择器禁用。
+- 宿主 `GET /prompt-boost/settings` 的 `styles` 增加 `system` 字段；客户端直接使用宿主返回值，不再复制提示词常量。
+- 「填入内置策略」按钮改为单行小字号，文字不再换行。
+
+![风格选择菜单](assets/styles-menu.png)
 
 ## 安装（本地 link）
 
@@ -28,8 +40,9 @@ dsh plugin --profile desktop add link:D:/DeepSeek/dsh-prompt-boost
 ## 使用
 
 1. 在输入框写一段草稿（一句话也可以）。
-2. 点 **✦**，等预览卡出现；生成中右侧会实时显示结果。
-3. 满意就点「回填」，输入框内容被替换，上方出现「撤销」；不满意点「取消」，草稿保持原样。
+2. 在 **✦** 左侧选择风格；没选过时使用设置页的默认风格。
+3. 点 **✦**，等预览卡出现；生成中右侧会实时显示结果。
+4. 满意就点「回填」，输入框内容被替换，上方出现「撤销」；不满意点「取消」，草稿保持原样。
 
 ## 设置项
 
@@ -46,7 +59,8 @@ dsh plugin --profile desktop add link:D:/DeepSeek/dsh-prompt-boost
 | `contextMaxMessages` | `6` | 0–20 条 |
 | `contextMaxChars` | `4000` | 语境字符预算 |
 | `streaming` | `true` | 关闭后仍走同一端点，只是不逐段下发 |
-| `systemPrompt` | 空 | 留空使用内置增强策略 |
+| `defaultStyleId` | `logic` | 未手动选择风格时使用；`logic` / `structured` / `concise`，非法值回落 `logic` |
+| `systemPrompt` | 空 | 留空时设置页显示当前风格的默认提示词；手动填写后进入自定义模式，风格选择不生效 |
 
 设置保存在 `~/.dsh/prompt-boost.settings.json`（若宿主进程可见 `DSH_PROFILE_DIR`，则落在 profile 目录），不会写进插件源码目录。
 
@@ -56,10 +70,14 @@ dsh plugin --profile desktop add link:D:/DeepSeek/dsh-prompt-boost
 
 | 方法 | 路径 | 用途 |
 | --- | --- | --- |
-| GET | `/prompt-boost/settings` | 读取设置，附带 `builtinSystemPrompt` 与 `defaults` |
+| GET | `/prompt-boost/settings` | 读取设置，附带 `builtinSystemPrompt`、`defaults`、`styles`（含 `id`/`label`/`hint`/`system`）、`customMode` |
 | POST | `/prompt-boost/settings` | `{ patch }`，合并保存并回显 |
-| POST | `/prompt-boost/enhance` | `{ sessionId?, text }`，一次性返回 |
+| POST | `/prompt-boost/enhance` | `{ sessionId?, text, styleId? }`，一次性返回 |
 | POST | `/prompt-boost/enhance/stream` | 同参数，SSE 流式返回 |
+
+`styleId` 省略时使用 `defaultStyleId`；未知风格返回 400 `invalid-style`；自定义模式（`systemPrompt` 非空）下忽略 `styleId`。
+
+设置页的「系统提示词」在 `systemPrompt` 为空时显示当前 `defaultStyleId` 对应风格的 `system`；一旦手动编辑即进入自定义模式，风格选择禁用。
 
 SSE 帧（每帧 `data: <json>\n\n`）：
 

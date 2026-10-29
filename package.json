@@ -1,7 +1,7 @@
 {
   "name": "dsh-prompt-boost",
-  "version": "0.2.0",
-  "description": "DSH Web GUI 的「增强提示词」插件：把输入框草稿交给当前会话模型重写成结构化提示词，流式预览、一键回填、可撤销，并带独立设置页。",
+  "version": "0.3.0",
+  "description": "DSH Web GUI 的「增强提示词」插件：生成前可选仅优化逻辑/结构化重写/精简压缩三种风格，也可在设置页自定义系统提示词；流式预览、一键回填、可撤销，并带独立设置页。",
   "private": true,
   "author": "JianhangLy",
   "homepage": "https://github.com/JianhangLy/dsh-prompt-boost#readme",

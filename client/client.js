@@ -22,6 +22,7 @@ window.__ModuleLoader__.load({
     const ENDPOINT_SETTINGS = '/prompt-boost/settings'
     const SETTINGS_SECTION_ID = 'prompt-boost'
     const SETTINGS_SECTION_ORDER = 115
+    const STYLE_STORAGE_KEY = 'dsh-prompt-boost.style'
 
     const zh = {
       title: '增强结果',
@@ -61,7 +62,16 @@ window.__ModuleLoader__.load({
       settingStreaming: '流式输出',
       settingStreamingHint: '关闭后等生成完再一次性显示。',
       settingSystem: '系统提示词',
-      settingSystemHint: '留空使用内置策略；改动影响所有增强请求。',
+      settingSystemHint: '留空时显示当前风格的默认提示词；手动编辑后进入自定义模式，风格选择不生效。',
+      settingDefaultStyle: '默认风格',
+      settingDefaultStyleHint: '生成前没有手动选择时使用这个风格。',
+      settingCustomModeHint: '已填写自定义系统提示词：风格选择不生效。',
+      styleTitle: '增强风格',
+      styleCustomMode: '自定义模式',
+      styleCustomHint: '已启用自定义系统提示词，风格选择不生效',
+      styleLogic: '仅优化逻辑',
+      styleStructured: '结构化重写',
+      styleConcise: '精简压缩',
       settingFillBuiltin: '填入内置策略',
       settingSave: '保存',
       settingReset: '恢复默认',
@@ -109,7 +119,16 @@ window.__ModuleLoader__.load({
       settingStreaming: 'Streaming output',
       settingStreamingHint: 'When off, the result appears only after generation completes.',
       settingSystem: 'System prompt',
-      settingSystemHint: 'Leave empty to use the built-in strategy.',
+      settingSystemHint: 'Leave empty to show the selected style’s default prompt; editing it enters custom mode and disables style selection.',
+      settingDefaultStyle: 'Default style',
+      settingDefaultStyleHint: 'Used when no style is picked before generating.',
+      settingCustomModeHint: 'A custom system prompt is set: style selection is inactive.',
+      styleTitle: 'Enhance style',
+      styleCustomMode: 'Custom mode',
+      styleCustomHint: 'A custom system prompt is set; style selection is inactive.',
+      styleLogic: 'Logic only',
+      styleStructured: 'Structured rewrite',
+      styleConcise: 'Concise',
       settingFillBuiltin: 'Fill in built-in strategy',
       settingSave: 'Save',
       settingReset: 'Reset to defaults',
@@ -123,6 +142,23 @@ window.__ModuleLoader__.load({
       '.pb-button{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer;line-height:1}',
       '.pb-button:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}',
       '.pb-button:disabled{opacity:.45;cursor:default}',
+      '.pb-style-wrap{display:inline-flex;align-items:center;gap:6px}',
+      '.pb-style-dd{display:inline-flex;max-width:100%}',
+      '.pb-dd{position:relative;display:inline-flex;max-width:100%}',
+      '.pb-dd-trigger{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:space-between;gap:8px;height:28px;min-height:28px;padding:0 8px 0 9px;border:1px solid var(--dsw-alias-border-l2, rgba(127,127,127,.28));border-radius:8px;background:var(--dsw-alias-bg-layer-1, rgba(127,127,127,.06));color:var(--dsw-alias-label-secondary);font-family:inherit;font-size:12px;line-height:1;white-space:nowrap;cursor:pointer}',
+      '.pb-dd-trigger:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover, rgba(127,127,127,.14));color:var(--dsw-alias-label-primary)}',
+      '.pb-dd-trigger:disabled{opacity:.55;cursor:default}',
+      '.pb-dd-trigger:focus-visible{outline:2px solid var(--dsw-alias-brand-primary, #4c8dff);outline-offset:1px}',
+      '.pb-dd-value{white-space:nowrap}',
+      '.pb-dd-chevron{flex:none;width:6px;height:6px;margin-top:-3px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;opacity:.7;transform:rotate(45deg)}',
+      '.pb-dd-menu{box-sizing:border-box;position:fixed;z-index:9999;width:max-content;max-width:280px;max-height:320px;overflow:auto;padding:4px;border:1px solid var(--dsw-alias-border-l2, rgba(127,127,127,.28));border-radius:10px;background:var(--dsw-alias-bg-layer-2, var(--dsw-alias-bg-layer-1, #1c1f24));box-shadow:0 12px 30px rgba(0,0,0,.35),0 2px 8px rgba(0,0,0,.2);display:flex;flex-direction:column;gap:2px}',
+      '.pb-dd-item{box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:6px 8px 6px 9px;border:0;border-radius:7px;background:transparent;color:var(--dsw-alias-label-secondary);font-family:inherit;font-size:12px;line-height:1.35;text-align:left;white-space:nowrap;cursor:pointer}',
+      '.pb-dd-item:hover{background:var(--dsw-alias-interactive-bg-hover, rgba(127,127,127,.14));color:var(--dsw-alias-label-primary)}',
+      '.pb-dd-item:focus-visible{outline:2px solid var(--dsw-alias-brand-primary, #4c8dff);outline-offset:-2px}',
+      '.pb-dd-item.is-selected{color:var(--dsw-alias-label-primary)}',
+      '.pb-dd-check{flex:none;width:12px;font-size:12px;line-height:1;color:var(--dsw-alias-brand-primary, #4c8dff)}',
+      '.pb-style-dd .pb-dd-trigger{height:26px;min-height:26px;padding:0 7px 0 8px;font-size:12px}',
+      '.pb-style-custom{height:26px;min-height:26px;padding:0 8px;font-size:12px}',
       '.pb-glyph{font-size:16px}',
       '.pb-pulse{animation:pb-pulse 1s ease-in-out infinite}',
       '@keyframes pb-pulse{50%{opacity:.35}}',
@@ -140,6 +176,7 @@ window.__ModuleLoader__.load({
       '.pb-primary{border:0;border-radius:8px;padding:6px 14px;background:#2f6fed;color:#fff}',
       '.pb-ghost{border:1px solid rgba(127,127,127,.35);border-radius:8px;padding:6px 12px;background:transparent;color:var(--dsw-alias-label-primary)}',
       '.pb-link{border:0;background:transparent;padding:0;color:#2f6fed}',
+      '.pb-fill-strategy{flex:none;font-size:12px;line-height:1.4;white-space:nowrap}',
       '.pb-error{display:flex;align-items:center;justify-content:space-between;gap:12px;border-color:rgba(220,80,80,.5)}',
       '.pb-error-text{color:#d05050}',
       '.pb-undo{box-sizing:border-box;display:flex;align-items:center;gap:10px;width:calc(100% - var(--dsh-composer-side-clearance, 16px) - var(--dsh-composer-side-clearance, 16px));max-width:var(--dsh-composer-card-max-width, 952px);margin:0 auto 8px;padding:6px 12px;border-radius:10px;background:rgba(127,127,127,.08);color:var(--dsw-alias-label-secondary);font-size:12px}',
@@ -154,6 +191,8 @@ window.__ModuleLoader__.load({
       '.pb-field-hint{margin:0;font-size:12px;color:var(--dsw-alias-label-tertiary)}',
       '.pb-input,.pb-textarea{box-sizing:border-box;width:100%;padding:6px 8px;border:1px solid rgba(127,127,127,.35);border-radius:8px;background:transparent;color:inherit;font:inherit}',
       '.pb-number{box-sizing:border-box;width:120px;padding:6px 8px;border:1px solid rgba(127,127,127,.35);border-radius:8px;background:transparent;color:inherit;font:inherit}',
+      '.pb-dd-settings{display:flex;width:220px;max-width:100%}',
+      '.pb-dd-settings .pb-dd-trigger{width:100%}',
       '.pb-textarea{min-height:120px;resize:vertical;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}',
       '.pb-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}',
       '.pb-inline{display:flex;align-items:center;gap:8px}',
@@ -230,7 +269,7 @@ window.__ModuleLoader__.load({
 
     // —— 增强请求（SSE）——
 
-    function requestEnhance(sessionId, text) {
+    function requestEnhance(sessionId, text, styleId) {
       const initial = readState(sessionId)
       if (initial.phase === 'loading') return
       const controller = new AbortController()
@@ -272,7 +311,7 @@ window.__ModuleLoader__.load({
           response = await fetch(ENDPOINT_STREAM, {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ sessionId, text }),
+            body: JSON.stringify({ sessionId, text, styleId }),
             signal: controller.signal,
           })
         } catch (error) {
@@ -355,6 +394,130 @@ window.__ModuleLoader__.load({
 
     // —— 输入框插槽组件 ——
 
+    // 风格文案优先走词典，词典缺项时退回宿主给的 label。
+    function styleLabel(t, id) {
+      const key = 'style' + id.charAt(0).toUpperCase() + id.slice(1)
+      const value = t(key)
+      return value === key ? id : value
+    }
+
+    function readStoredStyle() {
+      try {
+        return typeof window === 'undefined' ? '' : (window.localStorage.getItem(STYLE_STORAGE_KEY) || '')
+      } catch {
+        return ''
+      }
+    }
+
+    function storeStyle(styleId) {
+      try {
+        if (typeof window !== 'undefined') window.localStorage.setItem(STYLE_STORAGE_KEY, styleId)
+      } catch {
+        // localStorage 不可用时只影响“记住上次”，不影响本次生成。
+      }
+    }
+
+    // 自绘下拉：原生 select 的展开列表无法跟随页面主题，收起态也容易截断。
+    // 行为仍是受控单选：value / options / onChange / disabled 与原来一致。
+    function StyleDropdown(props) {
+      const [open, setOpen] = React.useState(false)
+      const [menuStyle, setMenuStyle] = React.useState(null)
+      const rootRef = React.useRef(null)
+      const options = Array.isArray(props.options) ? props.options : []
+      const selected = options.find((option) => option.value === props.value) || options[0] || null
+      const disabled = props.disabled === true
+
+      React.useEffect(() => {
+        if (!open) return undefined
+        const close = () => setOpen(false)
+        const onPointerDown = (event) => {
+          if (rootRef.current && !rootRef.current.contains(event.target)) close()
+        }
+        const onKeyDown = (event) => {
+          if (event.key === 'Escape') close()
+        }
+        document.addEventListener('mousedown', onPointerDown)
+        document.addEventListener('keydown', onKeyDown)
+        window.addEventListener('resize', close)
+        window.addEventListener('scroll', close, true)
+        return () => {
+          document.removeEventListener('mousedown', onPointerDown)
+          document.removeEventListener('keydown', onKeyDown)
+          window.removeEventListener('resize', close)
+          window.removeEventListener('scroll', close, true)
+        }
+      }, [open])
+
+      function openMenu() {
+        const node = rootRef.current
+        const rect = node && node.getBoundingClientRect ? node.getBoundingClientRect() : null
+        if (rect && typeof window !== 'undefined') {
+          const up = props.placement === 'up'
+          const style = {
+            position: 'fixed',
+            minWidth: Math.round(rect.width),
+          }
+          if (up) {
+            style.right = Math.max(8, Math.round(window.innerWidth - rect.right))
+            style.bottom = Math.max(8, Math.round(window.innerHeight - rect.top + 6))
+          } else {
+            style.left = Math.max(8, Math.round(rect.left))
+            style.top = Math.round(rect.bottom + 6)
+          }
+          if (props.width === 'trigger') style.width = Math.round(rect.width)
+          setMenuStyle(style)
+        } else {
+          setMenuStyle(null)
+        }
+        setOpen(true)
+      }
+
+      function choose(value) {
+        setOpen(false)
+        if (value !== props.value && typeof props.onChange === 'function') props.onChange(value)
+      }
+
+      const trigger = h('button', {
+        type: 'button',
+        className: 'pb-dd-trigger',
+        disabled,
+        title: props.title,
+        'aria-label': props.ariaLabel || props.title,
+        'aria-haspopup': 'listbox',
+        'aria-expanded': open ? 'true' : 'false',
+        onClick: () => {
+          if (disabled) return
+          if (open) setOpen(false)
+          else openMenu()
+        },
+      },
+        h('span', { className: 'pb-dd-value' }, selected ? selected.label : ''),
+        h('span', { className: 'pb-dd-chevron', 'aria-hidden': 'true' }))
+
+      const menu = open && !disabled
+        ? h('div', {
+          className: 'pb-dd-menu',
+          role: 'listbox',
+          'aria-label': props.ariaLabel || props.title,
+          style: menuStyle || undefined,
+        }, options.map((option) => h('button', {
+          key: option.value,
+          type: 'button',
+          role: 'option',
+          'aria-selected': option.value === props.value ? 'true' : 'false',
+          className: 'pb-dd-item' + (option.value === props.value ? ' is-selected' : ''),
+          onClick: () => choose(option.value),
+        },
+          h('span', { className: 'pb-dd-item-label' }, option.label),
+          h('span', { className: 'pb-dd-check', 'aria-hidden': 'true' }, option.value === props.value ? '✓' : ''))))
+        : null
+
+      return h('span', {
+        className: 'pb-dd' + (props.className ? ' ' + props.className : ''),
+        ref: rootRef,
+      }, trigger, menu)
+    }
+
     function EnhanceButton(props) {
       const sessionId = props.sessionId
       const t = translator(props)
@@ -363,6 +526,35 @@ window.__ModuleLoader__.load({
       const busy = state.phase === 'loading'
       const empty = typeof draft !== 'string' || draft.trim() === ''
       const disabled = busy || empty
+      const [styles, setStyles] = React.useState([])
+      const [customMode, setCustomMode] = React.useState(false)
+      const [styleId, setStyleId] = React.useState(readStoredStyle)
+
+      // 生成前读一次设置：拿风格清单、默认风格与自定义模式标记。
+      React.useEffect(() => {
+        let alive = true
+        fetch(ENDPOINT_SETTINGS)
+          .then((response) => response.json())
+          .then((payload) => {
+            if (!alive || !payload || payload.ok !== true) return
+            const list = Array.isArray(payload.styles) ? payload.styles : []
+            const stored = readStoredStyle()
+            const fallback = payload.value && typeof payload.value.defaultStyleId === 'string'
+              ? payload.value.defaultStyleId
+              : ''
+            const known = (id) => list.some((style) => style.id === id)
+            const preferred = known(stored) ? stored : (known(fallback) ? fallback : (list[0] ? list[0].id : ''))
+            setStyles(list)
+            setCustomMode(payload.customMode === true)
+            if (preferred !== '') setStyleId(preferred)
+          })
+          .catch(() => {
+            // 设置读不到时隐藏选择器，增强按钮仍按宿主默认风格工作。
+          })
+        return () => {
+          alive = false
+        }
+      }, [sessionId])
 
       function start() {
         if (disabled) return
@@ -371,10 +563,38 @@ window.__ModuleLoader__.load({
           patch(sessionId, { phase: 'error', error: t('errorCommand') })
           return
         }
-        requestEnhance(sessionId, text)
+        requestEnhance(sessionId, text, styleId)
       }
 
-      return h('button', {
+      function choose(value) {
+        setStyleId(value)
+        storeStyle(value)
+      }
+
+      const selector = customMode
+        ? h('button', {
+          type: 'button',
+          className: 'pb-dd-trigger pb-style-custom',
+          disabled: true,
+          title: t('styleCustomHint'),
+          'aria-label': t('styleCustomHint'),
+        },
+          h('span', { className: 'pb-dd-value' }, t('styleCustomMode')),
+          h('span', { className: 'pb-dd-chevron', 'aria-hidden': 'true' }))
+        : styles.length > 0
+          ? h(StyleDropdown, {
+            className: 'pb-style-dd',
+            value: styleId,
+            options: styles.map((style) => ({ value: style.id, label: styleLabel(t, style.id) })),
+            onChange: choose,
+            disabled: busy,
+            placement: 'up',
+            title: t('styleTitle'),
+            ariaLabel: t('styleTitle'),
+          })
+          : null
+
+      const button = h('button', {
         type: 'button',
         className: 'pb-button' + (busy ? ' pb-button-busy' : ''),
         title: empty ? t('emptyHint') : t('buttonTitle'),
@@ -382,6 +602,8 @@ window.__ModuleLoader__.load({
         disabled,
         onClick: start,
       }, h('span', { className: 'pb-glyph' + (busy ? ' pb-pulse' : '') }, '✦'))
+
+      return selector === null ? button : h('span', { className: 'pb-style-wrap' }, selector, button)
     }
 
     function PreviewPanel(props) {
@@ -507,6 +729,7 @@ window.__ModuleLoader__.load({
       const [form, setForm] = React.useState(null)
       const [builtin, setBuiltin] = React.useState('')
       const [defaults, setDefaults] = React.useState(null)
+      const [styles, setStyles] = React.useState([])
       const [status, setStatus] = React.useState(t('settingLoading'))
       const [failed, setFailed] = React.useState(false)
       const [busy, setBusy] = React.useState(false)
@@ -521,6 +744,7 @@ window.__ModuleLoader__.load({
               setForm(payload.value)
               setBuiltin(typeof payload.builtinSystemPrompt === 'string' ? payload.builtinSystemPrompt : '')
               setDefaults(payload.defaults && typeof payload.defaults === 'object' ? payload.defaults : null)
+              setStyles(Array.isArray(payload.styles) ? payload.styles : [])
               setStatus('')
               setFailed(false)
             } else {
@@ -546,6 +770,11 @@ window.__ModuleLoader__.load({
       }
 
       const update = (key, value) => setForm((current) => ({ ...current, [key]: value }))
+
+      const customMode = String(form.systemPrompt || '').trim() !== ''
+      const selectedStyle = styles.find((style) => style.id === (form.defaultStyleId || 'logic'))
+      const stylePrompt = selectedStyle && typeof selectedStyle.system === 'string' ? selectedStyle.system : builtin
+      const shownSystemPrompt = customMode ? form.systemPrompt : stylePrompt
 
       function save() {
         setBusy(true)
@@ -655,16 +884,32 @@ window.__ModuleLoader__.load({
           h('p', { className: 'pb-field-hint' }, t('settingStreamingHint'))),
 
         h('div', { className: 'pb-field' },
+          h('span', { className: 'pb-field-label' }, t('settingDefaultStyle')),
+          h(StyleDropdown, {
+            className: 'pb-dd-settings',
+            value: form.defaultStyleId || 'logic',
+            options: styles.map((style) => ({ value: style.id, label: styleLabel(t, style.id) })),
+            onChange: (value) => update('defaultStyleId', value),
+            disabled: customMode,
+            placement: 'down',
+            width: 'trigger',
+            ariaLabel: t('settingDefaultStyle'),
+          }),
+          customMode
+            ? h('p', { className: 'pb-field-hint' }, t('settingCustomModeHint'))
+            : h('p', { className: 'pb-field-hint' }, t('settingDefaultStyleHint'))),
+
+        h('div', { className: 'pb-field' },
           h('span', { className: 'pb-field-label' }, t('settingSystem')),
           h('textarea', {
             className: 'pb-textarea',
-            value: form.systemPrompt,
+            value: shownSystemPrompt,
             onChange: (event) => update('systemPrompt', event.target.value),
           }),
           h('div', { className: 'pb-actions-row' },
             h('button', {
               type: 'button',
-              className: 'pb-link',
+              className: 'pb-link pb-fill-strategy',
               onClick: () => update('systemPrompt', builtin),
             }, t('settingFillBuiltin')),
             h('span', { className: 'pb-field-hint' }, t('settingSystemHint')))),
