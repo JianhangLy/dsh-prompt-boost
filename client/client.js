@@ -567,6 +567,7 @@ window.__ModuleLoader__.load({
       const [styles, setStyles] = React.useState([])
       const [customMode, setCustomMode] = React.useState(false)
       const [styleId, setStyleId] = React.useState(readStoredStyle)
+      const rootRef = React.useRef(null)
 
       // 生成前读一次设置：拿风格清单、默认风格与自定义模式标记。
       React.useEffect(() => {
@@ -604,6 +605,45 @@ window.__ModuleLoader__.load({
         requestEnhance(sessionId, text, styleId)
       }
 
+      // Shift+Tab：焦点在输入框内时一键增强。
+      // 只接管 composer 自己的可编辑区，避免在设置页、搜索框或弹窗里改变默认的焦点回退。
+      React.useEffect(() => {
+        if (disabled || typeof draft !== 'string' || draft.trim().startsWith('/')) return undefined
+
+        const onKeyDown = (event) => {
+          if (event.key !== 'Tab' || !event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return
+          if (event.isComposing) return
+          const root = rootRef.current
+          const active = document.activeElement
+          if (!root || !active) return
+          const textInput = active.tagName === 'TEXTAREA'
+            || (active.tagName === 'INPUT' && active.type !== 'checkbox' && active.type !== 'radio' && active.type !== 'button')
+            || active.isContentEditable
+          if (!textInput) return
+          // 设置页、侧栏和弹窗里的输入框不接管，保留 Shift+Tab 的默认焦点回退。
+          if (active.closest && active.closest('aside, nav, header, [role="dialog"], [role="search"], .pb-settings')) return
+
+          const form = root.closest('form')
+          if (form !== null) {
+            if (!form.contains(active)) return
+          } else {
+            let container = root.parentElement
+            while (container && container !== document.body) {
+              if (container.contains(active)) break
+              container = container.parentElement
+            }
+            if (!container || container === document.body) return
+          }
+
+          event.preventDefault()
+          event.stopPropagation()
+          start()
+        }
+
+        document.addEventListener('keydown', onKeyDown, true)
+        return () => document.removeEventListener('keydown', onKeyDown, true)
+      }, [disabled, draft, styleId, sessionId])
+
       function choose(value) {
         setStyleId(value)
         storeStyle(value)
@@ -632,11 +672,15 @@ window.__ModuleLoader__.load({
           })
           : null
 
+      const buttonTitle = empty ? t('emptyHint') : t('buttonTitle') + ' · Shift+Tab'
+
       const button = h('button', {
+        ref: rootRef,
         type: 'button',
         className: 'pb-button' + (busy ? ' pb-button-busy' : ''),
-        title: empty ? t('emptyHint') : t('buttonTitle'),
-        'aria-label': t('buttonTitle'),
+        title: buttonTitle,
+        'aria-label': buttonTitle,
+        'aria-keyshortcuts': 'Shift+Tab',
         disabled,
         onClick: start,
       }, h('span', { className: 'pb-glyph' + (busy ? ' pb-pulse' : '') }, '✦'))
